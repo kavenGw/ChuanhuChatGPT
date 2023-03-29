@@ -104,9 +104,6 @@ with gr.Blocks(css=customCSS, theme=small_and_beautiful_theme) as demo:
                         label="API-Key",
                     )
                     usageTxt = gr.Markdown(get_usage(my_api_key), elem_id="usage_display")
-                    model_select_dropdown = gr.Dropdown(
-                        label="选择模型", choices=MODELS, multiselect=False, value=MODELS[0]
-                    )
                     use_streaming_checkbox = gr.Checkbox(
                         label="实时传输回答", value=True, visible=enable_streaming_option
                     )
@@ -235,7 +232,6 @@ with gr.Blocks(css=customCSS, theme=small_and_beautiful_theme) as demo:
             top_p,
             temperature,
             use_streaming_checkbox,
-            model_select_dropdown,
             use_websearch_checkbox,
             index_files,
             language_select_dropdown,
@@ -294,7 +290,6 @@ with gr.Blocks(css=customCSS, theme=small_and_beautiful_theme) as demo:
             top_p,
             temperature,
             use_streaming_checkbox,
-            model_select_dropdown,
             language_select_dropdown,
         ],
         [chatbot, history, status_display, token_count],
@@ -326,7 +321,6 @@ with gr.Blocks(css=customCSS, theme=small_and_beautiful_theme) as demo:
             top_p,
             temperature,
             gr.State(max_token_streaming//2 if use_streaming_checkbox.value else max_token_all//2),
-            model_select_dropdown,
             language_select_dropdown,
         ],
         [chatbot, history, status_display, token_count],
