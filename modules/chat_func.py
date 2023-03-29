@@ -32,9 +32,10 @@ if TYPE_CHECKING:
 initial_prompt = "You are a helpful assistant."
 HISTORY_DIR = "history"
 TEMPLATES_DIR = "templates"
+ChatGPTModel = "gpt-3.5-turbo"
 
 def get_response(
-    openai_api_key, system_prompt, history, temperature, top_p, stream, selected_model
+    openai_api_key, system_prompt, history, temperature, top_p, stream
 ):
     headers = {
         "Content-Type": "application/json",
@@ -44,7 +45,7 @@ def get_response(
     history = [construct_system(system_prompt), *history]
 
     payload = {
-        "model": selected_model,
+        "model": ChatGPTModel,
         "messages": history,  # [{"role": "user", "content": f"{inputs}"}],
         "temperature": temperature,  # 1.0,
         "top_p": top_p,  # 1.0,
@@ -103,7 +104,6 @@ def stream_predict(
     all_token_counts,
     top_p,
     temperature,
-    selected_model,
     fake_input=None,
     display_append=""
 ):
@@ -139,7 +139,6 @@ def stream_predict(
             temperature,
             top_p,
             True,
-            selected_model,
         )
     except requests.exceptions.ConnectTimeout:
         status_text = (
@@ -228,7 +227,6 @@ def predict_all(
             temperature,
             top_p,
             False,
-            selected_model,
         )
     except requests.exceptions.ConnectTimeout:
         status_text = (
@@ -261,7 +259,6 @@ def predict(
     top_p,
     temperature,
     stream=False,
-    selected_model=MODELS[0],
     use_websearch=False,
     files = None,
     reply_language="中文",
@@ -333,7 +330,6 @@ def predict(
             all_token_counts,
             top_p,
             temperature,
-            selected_model,
             fake_input=old_inputs,
             display_append=link_references
         )
@@ -353,7 +349,6 @@ def predict(
             all_token_counts,
             top_p,
             temperature,
-            selected_model,
             fake_input=old_inputs,
             display_append=link_references
         )
@@ -386,7 +381,6 @@ def predict(
             top_p,
             temperature,
             max_token//2,
-            selected_model=selected_model,
         )
         for chatbot, history, status_text, all_token_counts in iter:
             status_text = f"Token 达到上限，已自动降低Token计数至 {status_text}"
@@ -402,7 +396,6 @@ def retry(
     top_p,
     temperature,
     stream=False,
-    selected_model=MODELS[0],
     reply_language="中文",
 ):
     logging.info("重试中……")
@@ -422,7 +415,6 @@ def retry(
         top_p,
         temperature,
         stream=stream,
-        selected_model=selected_model,
         reply_language=reply_language,
     )
     logging.info("重试中……")
@@ -440,7 +432,6 @@ def reduce_token_size(
     top_p,
     temperature,
     max_token_count,
-    selected_model=MODELS[0],
     reply_language="中文",
 ):
     logging.info("开始减少token数量……")
@@ -453,7 +444,6 @@ def reduce_token_size(
         token_count,
         top_p,
         temperature,
-        selected_model=selected_model,
         should_check_token_count=False,
         reply_language=reply_language,
     )
