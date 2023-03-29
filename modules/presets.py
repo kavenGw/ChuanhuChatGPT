@@ -33,14 +33,20 @@ title = """<h1 align="left" style="min-width:200px; margin-top:0;">ChatGPT</h1>"
 description = """\
 <div align="center" style="margin:16px 0">
 本页面仅供学习使用
-
 访问川虎ChatGPT的 [GitHub项目](https://github.com/GaiZhenbiao/ChuanhuChatGPT) 下载最新版脚本
-
-此App使用 `gpt-3.5-turbo` 大语言模型
 </div>
 """
 
 summarize_prompt = "你是谁？我们刚才聊了什么？"  # 总结对话时的 prompt
+
+MODELS = [
+    "gpt-3.5-turbo",
+    "gpt-3.5-turbo-0301",
+    "gpt-4",
+    "gpt-4-0314",
+    "gpt-4-32k",
+    "gpt-4-32k-0314",
+]  # 可选的模型
 
 REPLY_LANGUAGES = [
     "中文",

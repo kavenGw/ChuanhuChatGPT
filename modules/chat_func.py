@@ -402,6 +402,7 @@ def retry(
     top_p,
     temperature,
     stream=False,
+    selected_model=MODELS[0],
     reply_language="中文",
 ):
     logging.info("重试中……")
@@ -421,7 +422,7 @@ def retry(
         top_p,
         temperature,
         stream=stream,
-        selected_model="gpt-3.5-turbo",
+        selected_model=selected_model,
         reply_language=reply_language,
     )
     logging.info("重试中……")
