@@ -126,16 +126,16 @@ with gr.Blocks(css=customCSS, theme=small_and_beautiful_theme) as demo:
                     ).style(container=False)
                     with gr.Accordion(label="加载Prompt模板", open=True):
                         with gr.Column():
-                            with gr.Row():
-                                with gr.Column(scale=6):
-                                    templateFileSelectDropdown = gr.Dropdown(
-                                        label="选择Prompt模板集合文件",
-                                        choices=get_template_names(plain=True),
-                                        multiselect=False,
-                                        value=get_template_names(plain=True)[0],
-                                    ).style(container=False)
-                                with gr.Column(scale=1):
-                                    templateRefreshBtn = gr.Button("🔄 刷新")
+                            # with gr.Row():
+                            #     with gr.Column(scale=6):
+                            #         templateFileSelectDropdown = gr.Dropdown(
+                            #             label="选择Prompt模板集合文件",
+                            #             choices=get_template_names(plain=True),
+                            #             multiselect=False,
+                            #             value=get_template_names(plain=True)[0],
+                            #         ).style(container=False)
+                            #     with gr.Column(scale=1):
+                            #         templateRefreshBtn = gr.Button("🔄 刷新")
                             with gr.Row():
                                 with gr.Column():
                                     templateSelectDropdown = gr.Dropdown(
