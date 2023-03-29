@@ -261,6 +261,7 @@ def predict(
     top_p,
     temperature,
     stream=False,
+    selected_model=MODELS[0],
     use_websearch=False,
     files = None,
     reply_language="中文",
@@ -438,6 +439,7 @@ def reduce_token_size(
     top_p,
     temperature,
     max_token_count,
+    selected_model=MODELS[0],
     reply_language="中文",
 ):
     logging.info("开始减少token数量……")
@@ -450,6 +452,7 @@ def reduce_token_size(
         token_count,
         top_p,
         temperature,
+        selected_model=selected_model,
         should_check_token_count=False,
         reply_language=reply_language,
     )
