@@ -259,20 +259,21 @@ def sorted_by_pinyin(list):
 
 
 def get_file_names(dir, plain=False, filetypes=[".json"]):
-    logging.info(f"获取文件名列表，目录为{dir}，文件类型为{filetypes}，是否为纯文本列表{plain}")
-    files = []
-    try:
-        for type in filetypes:
-            files += [f for f in os.listdir(dir) if f.endswith(type)]
-    except FileNotFoundError:
-        files = []
-    files = sorted_by_pinyin(files)
-    if files == []:
-        files = [""]
-    if plain:
-        return files
-    else:
-        return gr.Dropdown.update(choices=files)
+    # logging.info(f"获取文件名列表，目录为{dir}，文件类型为{filetypes}，是否为纯文本列表{plain}")
+    # files = []
+    # try:
+    #     for type in filetypes:
+    #         files += [f for f in os.listdir(dir) if f.endswith(type)]
+    # except FileNotFoundError:
+    #     files = []
+    # files = sorted_by_pinyin(files)
+    # if files == []:
+    #     files = [""]
+    # if plain:
+    #     return files
+    # else:
+    #     return gr.Dropdown.update(choices=files)
+    return ["Prompts.json"]
 
 
 def get_history_names(plain=False):
