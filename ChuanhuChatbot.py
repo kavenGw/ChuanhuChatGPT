@@ -332,13 +332,13 @@ with gr.Blocks(css=customCSS, theme=small_and_beautiful_theme) as demo:
     keyTxt.change(submit_key, keyTxt, [user_api_key, status_display]).then(**get_usage_args)
 
     # Template
-    templateRefreshBtn.click(get_template_names, None, [templateFileSelectDropdown])
-    templateFileSelectDropdown.change(
-        load_template,
-        [templateFileSelectDropdown],
-        [promptTemplates, templateSelectDropdown],
-        show_progress=True,
-    )
+    # templateRefreshBtn.click(get_template_names, None, [templateFileSelectDropdown])
+    # templateFileSelectDropdown.change(
+    #     load_template,
+    #     [templateFileSelectDropdown],
+    #     [promptTemplates, templateSelectDropdown],
+    #     show_progress=True,
+    # )
     templateSelectDropdown.change(
         get_template_content,
         [promptTemplates, templateSelectDropdown, systemPromptTxt],
