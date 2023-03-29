@@ -268,11 +268,12 @@ def predict(
     should_check_token_count=True,
 ):  # repetition_penalty, top_k
     logging.info("输入为：" + colorama.Fore.BLUE + f"{inputs}" + colorama.Style.RESET_ALL)
-    yield chatbot+[(inputs, "")], history, "开始生成回答……", all_token_counts
+    if should_check_token_count:
+        yield chatbot+[(inputs, "")], history, "开始生成回答……", all_token_counts
     if reply_language == "跟随问题语言（不稳定）":
         reply_language = "the same language as the question, such as English, 中文, 日本語, Español, Français, or Deutsch."
     if files:
-        msg = "构建索引中……（这可能需要比较久的时间）"
+        msg = "加载索引中……（这可能需要几分钟）"
         logging.info(msg)
         yield chatbot+[(inputs, "")], history, msg, all_token_counts
         index = construct_index(openai_api_key, file_src=files)
@@ -460,6 +461,7 @@ def reduce_token_size(
     flag = False
     for chatbot, history, status_text, previous_token_count in iter:
         num_chat = find_n(previous_token_count, max_token_count)
+        logging.info(f"previous_token_count: {previous_token_count}, keeping {num_chat} chats")
         if flag:
             chatbot = chatbot[:-1]
         flag = True
