@@ -95,14 +95,6 @@ with gr.Blocks(css=customCSS, theme=small_and_beautiful_theme) as demo:
         with gr.Column():
             with gr.Column(min_width=50, scale=1):
                 with gr.Tab(label="ChatGPT"):
-                    keyTxt = gr.Textbox(
-                        show_label=True,
-                        placeholder=f"OpenAI API-key...",
-                        value=hide_middle_chars(my_api_key),
-                        type="password",
-                        visible=not HIDE_MY_KEY,
-                        label="API-Key",
-                    )
                     usageTxt = gr.Markdown(get_usage(my_api_key), elem_id="usage_display")
                     use_streaming_checkbox = gr.Checkbox(
                         label="实时传输回答", value=True, visible=enable_streaming_option
@@ -327,9 +319,6 @@ with gr.Blocks(css=customCSS, theme=small_and_beautiful_theme) as demo:
         show_progress=True,
     )
     reduceTokenBtn.click(**get_usage_args)
-
-    # ChatGPT
-    keyTxt.change(submit_key, keyTxt, [user_api_key, status_display]).then(**get_usage_args)
 
     # Template
     # templateRefreshBtn.click(get_template_names, None, [templateFileSelectDropdown])
