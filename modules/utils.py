@@ -10,6 +10,8 @@ import csv
 import requests
 import re
 import html
+import sys
+import subprocess
 
 import gradio as gr
 from pypinyin import lazy_pinyin
@@ -19,14 +21,11 @@ from markdown import markdown
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import HtmlFormatter
+import pandas as pd
 
 from modules.presets import *
-import modules.shared as shared
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s",
-)
+from . import shared
+from modules.config import retrieve_proxy
 
 if TYPE_CHECKING:
     from typing import TypedDict
@@ -154,8 +153,11 @@ def construct_assistant(text):
     return construct_text("assistant", text)
 
 
-def construct_token_message(token, stream=False):
-    return f"Token 计数: {token}"
+def construct_token_message(tokens: List[int]):
+    token_sum = 0
+    for i in range(len(tokens)):
+        token_sum += sum(tokens[: i + 1])
+    return f"Token 计数: {sum(tokens)}，本次对话累计消耗了 {token_sum} tokens"
 
 
 def delete_first_conversation(history, previous_token_count):
@@ -165,7 +167,7 @@ def delete_first_conversation(history, previous_token_count):
     return (
         history,
         previous_token_count,
-        construct_token_message(sum(previous_token_count)),
+        construct_token_message(previous_token_count),
     )
 
 
@@ -188,50 +190,50 @@ def delete_last_conversation(chatbot, history, previous_token_count):
         chatbot,
         history,
         previous_token_count,
-        construct_token_message(sum(previous_token_count)),
+        construct_token_message(previous_token_count),
     )
 
 
-def save_file(filename, system, history, chatbot):
-    logging.info("保存对话历史中……")
-    os.makedirs(HISTORY_DIR, exist_ok=True)
+def save_file(filename, system, history, chatbot, user_name):
+    logging.info(f"{user_name} 保存对话历史中……")
+    os.makedirs(HISTORY_DIR / user_name, exist_ok=True)
     if filename.endswith(".json"):
         json_s = {"system": system, "history": history, "chatbot": chatbot}
         print(json_s)
-        with open(os.path.join(HISTORY_DIR, filename), "w") as f:
+        with open(os.path.join(HISTORY_DIR / user_name, filename), "w") as f:
             json.dump(json_s, f)
     elif filename.endswith(".md"):
         md_s = f"system: \n- {system} \n"
         for data in history:
             md_s += f"\n{data['role']}: \n- {data['content']} \n"
-        with open(os.path.join(HISTORY_DIR, filename), "w", encoding="utf8") as f:
+        with open(os.path.join(HISTORY_DIR / user_name, filename), "w", encoding="utf8") as f:
             f.write(md_s)
-    logging.info("保存对话历史完毕")
-    return os.path.join(HISTORY_DIR, filename)
+    logging.info(f"{user_name} 保存对话历史完毕")
+    return os.path.join(HISTORY_DIR / user_name, filename)
 
 
-def save_chat_history(filename, system, history, chatbot):
+def save_chat_history(filename, system, history, chatbot, user_name):
     if filename == "":
         return
     if not filename.endswith(".json"):
         filename += ".json"
-    return save_file(filename, system, history, chatbot)
+    return save_file(filename, system, history, chatbot, user_name)
 
 
-def export_markdown(filename, system, history, chatbot):
+def export_markdown(filename, system, history, chatbot, user_name):
     if filename == "":
         return
     if not filename.endswith(".md"):
         filename += ".md"
-    return save_file(filename, system, history, chatbot)
+    return save_file(filename, system, history, chatbot, user_name)
 
 
-def load_chat_history(filename, system, history, chatbot):
-    logging.info("加载对话历史中……")
+def load_chat_history(filename, system, history, chatbot, user_name):
+    logging.info(f"{user_name} 加载对话历史中……")
     if type(filename) != str:
         filename = filename.name
     try:
-        with open(os.path.join(HISTORY_DIR, filename), "r") as f:
+        with open(os.path.join(HISTORY_DIR / user_name, filename), "r") as f:
             json_s = json.load(f)
         try:
             if type(json_s["history"][0]) == str:
@@ -247,10 +249,10 @@ def load_chat_history(filename, system, history, chatbot):
         except:
             # 没有对话历史
             pass
-        logging.info("加载对话历史完毕")
+        logging.info(f"{user_name} 加载对话历史完毕")
         return filename, json_s["system"], json_s["history"], json_s["chatbot"]
     except FileNotFoundError:
-        logging.info("没有找到对话历史文件，不执行任何操作")
+        logging.info(f"{user_name} 没有找到对话历史文件，不执行任何操作")
         return filename, system, history, chatbot
 
 
@@ -276,9 +278,9 @@ def get_file_names(dir, plain=False, filetypes=[".json"]):
     return ["Prompts.json"]
 
 
-def get_history_names(plain=False):
-    logging.info("获取历史记录文件名列表")
-    return get_file_names(HISTORY_DIR, plain)
+def get_history_names(plain=False, user_name=""):
+    logging.info(f"从用户 {user_name} 中获取历史记录文件名列表")
+    return get_file_names(HISTORY_DIR / user_name, plain)
 
 
 def load_template(filename, mode=0):
@@ -303,7 +305,7 @@ def load_template(filename, mode=0):
     else:
         choices = sorted_by_pinyin([row[0] for row in lines])
         return {row[0]: row[1] for row in lines}, gr.Dropdown.update(
-            choices=choices, value=choices[0]
+            choices=choices
         )
 
 
@@ -322,7 +324,7 @@ def get_template_content(templates, selection, original_system_prompt):
 
 def reset_state():
     logging.info("重置状态")
-    return [], [], [], construct_token_message(0)
+    return [], [], [], construct_token_message([0])
 
 
 def reset_textbox():
@@ -331,20 +333,20 @@ def reset_textbox():
 
 
 def reset_default():
-    newurl = shared.state.reset_api_url()
-    os.environ.pop("HTTPS_PROXY", None)
-    os.environ.pop("https_proxy", None)
-    return gr.update(value=newurl), gr.update(value=""), "API URL 和代理已重置"
+    default_host = shared.state.reset_api_host()
+    retrieve_proxy("")
+    return gr.update(value=default_host), gr.update(value=""), "API-Host 和代理已重置"
 
 
-def change_api_url(url):
-    shared.state.set_api_url(url)
-    msg = f"API地址更改为了{url}"
+def change_api_host(host):
+    shared.state.set_api_host(host)
+    msg = f"API-Host更改为了{host}"
     logging.info(msg)
     return msg
 
 
 def change_proxy(proxy):
+    retrieve_proxy(proxy)
     os.environ["HTTPS_PROXY"] = proxy
     msg = f"代理更改为了{proxy}"
     logging.info(msg)
@@ -352,6 +354,8 @@ def change_proxy(proxy):
 
 
 def hide_middle_chars(s):
+    if s is None:
+        return ""
     if len(s) <= 8:
         return s
     else:
@@ -368,20 +372,15 @@ def submit_key(key):
     return key, msg
 
 
-def sha1sum(filename):
-    sha1 = hashlib.sha1()
-    sha1.update(filename.encode("utf-8"))
-    return sha1.hexdigest()
-
-
 def replace_today(prompt):
     today = datetime.datetime.today().strftime("%Y-%m-%d")
     return prompt.replace("{current_date}", today)
 
 
 def get_geoip():
-    response = requests.get("https://ipapi.co/json/", timeout=5)
     try:
+        with retrieve_proxy():
+            response = requests.get("https://ipapi.co/json/", timeout=5)
         data = response.json()
     except:
         data = {"error": True, "reason": "连接ipapi失败"}
@@ -389,7 +388,7 @@ def get_geoip():
         logging.warning(f"无法获取IP地址信息。\n{data}")
         if data["reason"] == "RateLimited":
             return (
-                f"获取IP地理位置失败，因为达到了检测IP的速率限制。聊天功能可能仍然可用，但请注意，如果您的IP地址在不受支持的地区，您可能会遇到问题。"
+                f"获取IP地理位置失败，因为达到了检测IP的速率限制。聊天功能可能仍然可用。"
             )
         else:
             return f"获取IP地理位置失败。原因：{data['reason']}。你仍然可以使用聊天功能。"
@@ -444,3 +443,90 @@ def transfer_input(inputs):
         gr.Button.update(visible=False),
         gr.Button.update(visible=True),
     )
+
+
+
+def run(command, desc=None, errdesc=None, custom_env=None, live=False):
+    if desc is not None:
+        print(desc)
+    if live:
+        result = subprocess.run(command, shell=True, env=os.environ if custom_env is None else custom_env)
+        if result.returncode != 0:
+            raise RuntimeError(f"""{errdesc or 'Error running command'}.
+Command: {command}
+Error code: {result.returncode}""")
+
+        return ""
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, env=os.environ if custom_env is None else custom_env)
+    if result.returncode != 0:
+        message = f"""{errdesc or 'Error running command'}.
+Command: {command}
+Error code: {result.returncode}
+stdout: {result.stdout.decode(encoding="utf8", errors="ignore") if len(result.stdout)>0 else '<empty>'}
+stderr: {result.stderr.decode(encoding="utf8", errors="ignore") if len(result.stderr)>0 else '<empty>'}
+"""
+        raise RuntimeError(message)
+    return result.stdout.decode(encoding="utf8", errors="ignore")
+
+def versions_html():
+    git = os.environ.get('GIT', "git")
+    python_version = ".".join([str(x) for x in sys.version_info[0:3]])
+    try:
+        commit_hash = run(f"{git} rev-parse HEAD").strip()
+    except Exception:
+        commit_hash = "<none>"
+    if commit_hash != "<none>":
+        short_commit = commit_hash[0:7]
+        commit_info = f"<a style=\"text-decoration:none\" href=\"https://github.com/GaiZhenbiao/ChuanhuChatGPT/commit/{short_commit}\">{short_commit}</a>"
+    else:
+        commit_info = "unknown \U0001F615"
+    return f"""
+Python: <span title="{sys.version}">{python_version}</span>
+ • 
+Gradio: {gr.__version__}
+ • 
+Commit: {commit_info}
+"""
+
+def add_source_numbers(lst, source_name = "Source", use_source = True):
+    if use_source:
+        return [f'[{idx+1}]\t "{item[0]}"\n{source_name}: {item[1]}' for idx, item in enumerate(lst)]
+    else:
+        return [f'[{idx+1}]\t "{item}"' for idx, item in enumerate(lst)]
+
+def add_details(lst):
+    nodes = []
+    for index, txt in enumerate(lst):
+        brief = txt[:25].replace("\n", "")
+        nodes.append(
+            f"<details><summary>{brief}...</summary><p>{txt}</p></details>"
+        )
+    return nodes
+
+
+def sheet_to_string(sheet, sheet_name = None):
+    result = []
+    for index, row in sheet.iterrows():
+        row_string = ""
+        for column in sheet.columns:
+            row_string += f"{column}: {row[column]}, "
+        row_string = row_string.rstrip(", ")
+        row_string += "."
+        result.append(row_string)
+    return result
+
+def excel_to_string(file_path):
+    # 读取Excel文件中的所有工作表
+    excel_file = pd.read_excel(file_path, engine='openpyxl', sheet_name=None)
+
+    # 初始化结果字符串
+    result = []
+
+    # 遍历每一个工作表
+    for sheet_name, sheet_data in excel_file.items():
+
+        # 处理当前工作表并添加到结果字符串
+        result += sheet_to_string(sheet_data, sheet_name=sheet_name)
+
+
+    return result
