@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 initial_prompt = "You are a helpful assistant."
 HISTORY_DIR = "history"
 TEMPLATES_DIR = "templates"
-ChatGPTModel = "gpt-3.5-turbo"
+ChatGPTModel = "gpt-4-32k-0314"
 
 @shared.state.switching_api_key # 在不开启多账号模式的时候，这个装饰器不会起作用
 def get_response(
