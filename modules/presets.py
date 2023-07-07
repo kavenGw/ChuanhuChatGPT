@@ -37,7 +37,7 @@ description = """\
 
 访问川虎ChatGPT的 [GitHub项目](https://github.com/GaiZhenbiao/ChuanhuChatGPT) 下载最新版脚本
 
-此App使用 `gpt-4-32k` 大语言模型
+此App使用 `gpt-3.5-turbo` 大语言模型
 </div>
 """
 
